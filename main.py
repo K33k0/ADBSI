@@ -18,7 +18,7 @@ def run(stage):
     # Loop through each device running the selected file
     for s in get_all_devices():
         # Loop through each file in the config and sideload the file that matches the button pressed
-        for name, file in config['Files'].items():
+        for name, file in config['FileLocation'].items():
             if name == stage.label:
                 status = subprocess.Popen(
                     [config['adbLocation'],'-s',s,'sideload',file],
@@ -79,7 +79,7 @@ config = toml.load('config.toml')
 with ptg.WindowManager() as manager:
     exit_button = ptg.Button("Exit", kill_app)
     # Create a list of buttons
-    my_buttons = [ptg.Button(name, run) for name in config['Files'].keys()]
+    my_buttons = [ptg.Button(name, run) for name in config['FileLocation'].keys()]
     get_devices_button = ptg.Button("Get Serial Numbers",get_all_devices)
     recover_button = ptg.Button("Reboot recovery", reboot_recovery)
     status_text = ptg.Label()
