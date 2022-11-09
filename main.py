@@ -8,6 +8,18 @@ from pytermgui.enums import HorizontalAlignment, VerticalAlignment
 import toml
 
 
+def device_list(adb):
+    serial_numbers = []
+    status = (
+        check_output([adb, "devices"]).decode("utf-8").split("\n")[1:]
+    )
+    for l in status:
+        if "device" in l or "sideload" in l:
+            serial_numbers.append(l[:14])
+    else:
+        return serial_numbers
+
+
 def kill_app(*args):
     sys.exit()
 
@@ -87,24 +99,25 @@ def get_all_devices(button=None):
     else:
         return serial_numbers
 
+if __name__ == '__main__':
 
-config = toml.load("config.toml")
-with ptg.WindowManager() as manager:
-    exit_button = ptg.Button("Exit", kill_app)
-    # Create a list of buttons
-    my_buttons = [ptg.Button(name, run) for name in config["FileLocation"].keys()]
-    get_devices_button = ptg.Button("Get Serial Numbers", get_all_devices)
-    recover_button = ptg.Button("Reboot recovery", reboot_recovery)
-    status_text = ptg.Label()
-    status_container = ptg.Container(status_text)
-    window = ptg.Window(
-        "[wm-title]ADB Sideloader",
-        ptg.Label("[210 dim]By Kieran Wynne"),
-        *my_buttons,
-        get_devices_button,
-        recover_button,
-        exit_button,
-        status_container,
-    )
-    manager.add(window)
-    manager.run()
+    config = toml.load("config.toml")
+    with ptg.WindowManager() as manager:
+        exit_button = ptg.Button("Exit", kill_app)
+        # Create a list of buttons
+        my_buttons = [ptg.Button(name, run) for name in config["FileLocation"].keys()]
+        get_devices_button = ptg.Button("Get Serial Numbers", get_all_devices)
+        recover_button = ptg.Button("Reboot recovery", reboot_recovery)
+        status_text = ptg.Label()
+        status_container = ptg.Container(status_text)
+        window = ptg.Window(
+            "[wm-title]ADB Sideloader",
+            ptg.Label("[210 dim]By Kieran Wynne"),
+            *my_buttons,
+            get_devices_button,
+            recover_button,
+            exit_button,
+            status_container,
+        )
+        manager.add(window)
+        manager.run()
