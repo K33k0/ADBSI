@@ -20,6 +20,61 @@ def device_list(adb):
         return serial_numbers
 
 
+def reboot_device_to_recovery(adb, serial_number):
+    processes = []
+    if isinstance(serial_number, list):
+        for device in serial_number:
+            processes.append(subprocess.Popen(
+                [adb, "-s", device, "reboot", "recovery"],
+                stdout=subprocess.PIPE,
+                universal_newlines=True,
+                stderr=subprocess.STDOUT,
+                )
+            )
+
+    elif isinstance(serial_number, str):
+        processes.append(subprocess.Popen(
+            [config["adbLocation"], "-s", serial_number, "reboot", "recovery"],
+            stdout=subprocess.PIPE,
+            universal_newlines=True,
+            stderr=subprocess.STDOUT,
+            )
+        )
+
+    return processes
+
+
+def run_user_sideload(adb, devices, file_name):
+    status = None
+    # Loop through each device running the selected file
+    for s in devices:
+        # Loop through each file in the config and sideload the file that matches the button pressed
+        status = subprocess.Popen(
+            [adb, "-s", s, "sideload", file_name],
+            stdout=subprocess.PIPE,
+            universal_newlines=True,
+            stderr=subprocess.STDOUT,
+            bufsize=1
+        )
+    # Loop through the terminal output from the adb command
+    while True:
+        try:
+            nextline = status.stdout.readline()
+        except Exception:
+            print("Failed at readline")
+            raise
+        # if line of output is empty or adb is running then kill it
+        if nextline == "" and status.poll() is not None:
+            exitcode = status.returncode
+            if exitcode == 0:
+                return True
+        # parse out the number numbers from within the adb output. Turning it into a value out of 100
+        if "(" in nextline:
+            current_status = float(
+                nextline[nextline.find("(") + 1: nextline.find(")")][1:-1]
+            )
+            yield current_status
+
 def kill_app(*args):
     sys.exit()
 
@@ -39,6 +94,7 @@ def run(stage):
                     stdout=subprocess.PIPE,
                     universal_newlines=True,
                     stderr=subprocess.STDOUT,
+                    bufsize=1
                 )
 
     # Loop through the terminal output from the adb command
