@@ -8,6 +8,73 @@ from pytermgui.enums import HorizontalAlignment, VerticalAlignment
 import toml
 
 
+def device_list(adb):
+    serial_numbers = []
+    status = (
+        check_output([adb, "devices"]).decode("utf-8").split("\n")[1:]
+    )
+    for l in status:
+        if "device" in l or "sideload" in l:
+            serial_numbers.append(l[:14])
+    else:
+        return serial_numbers
+
+
+def reboot_device_to_recovery(adb, serial_number):
+    processes = []
+    if isinstance(serial_number, list):
+        for device in serial_number:
+            processes.append(subprocess.Popen(
+                [adb, "-s", device, "reboot", "recovery"],
+                stdout=subprocess.PIPE,
+                universal_newlines=True,
+                stderr=subprocess.STDOUT,
+                )
+            )
+
+    elif isinstance(serial_number, str):
+        processes.append(subprocess.Popen(
+            [config["adbLocation"], "-s", serial_number, "reboot", "recovery"],
+            stdout=subprocess.PIPE,
+            universal_newlines=True,
+            stderr=subprocess.STDOUT,
+            )
+        )
+
+    return processes
+
+
+def run_user_sideload(adb, devices, file_name):
+    status = None
+    # Loop through each device running the selected file
+    for s in devices:
+        # Loop through each file in the config and sideload the file that matches the button pressed
+        status = subprocess.Popen(
+            [adb, "-s", s, "sideload", file_name],
+            stdout=subprocess.PIPE,
+            universal_newlines=True,
+            stderr=subprocess.STDOUT,
+            bufsize=1
+        )
+    # Loop through the terminal output from the adb command
+    while True:
+        try:
+            nextline = status.stdout.readline()
+        except Exception:
+            print("Failed at readline")
+            raise
+        # if line of output is empty or adb is running then kill it
+        if nextline == "" and status.poll() is not None:
+            exitcode = status.returncode
+            if exitcode == 0:
+                return True
+        # parse out the number numbers from within the adb output. Turning it into a value out of 100
+        if "(" in nextline:
+            current_status = float(
+                nextline[nextline.find("(") + 1: nextline.find(")")][1:-1]
+            )
+            yield current_status
+
 def kill_app(*args):
     sys.exit()
 
@@ -27,6 +94,7 @@ def run(stage):
                     stdout=subprocess.PIPE,
                     universal_newlines=True,
                     stderr=subprocess.STDOUT,
+                    bufsize=1
                 )
 
     # Loop through the terminal output from the adb command
@@ -87,24 +155,25 @@ def get_all_devices(button=None):
     else:
         return serial_numbers
 
+if __name__ == '__main__':
 
-config = toml.load("config.toml")
-with ptg.WindowManager() as manager:
-    exit_button = ptg.Button("Exit", kill_app)
-    # Create a list of buttons
-    my_buttons = [ptg.Button(name, run) for name in config["FileLocation"].keys()]
-    get_devices_button = ptg.Button("Get Serial Numbers", get_all_devices)
-    recover_button = ptg.Button("Reboot recovery", reboot_recovery)
-    status_text = ptg.Label()
-    status_container = ptg.Container(status_text)
-    window = ptg.Window(
-        "[wm-title]ADB Sideloader",
-        ptg.Label("[210 dim]By Kieran Wynne"),
-        *my_buttons,
-        get_devices_button,
-        recover_button,
-        exit_button,
-        status_container,
-    )
-    manager.add(window)
-    manager.run()
+    config = toml.load("config.toml")
+    with ptg.WindowManager() as manager:
+        exit_button = ptg.Button("Exit", kill_app)
+        # Create a list of buttons
+        my_buttons = [ptg.Button(name, run) for name in config["FileLocation"].keys()]
+        get_devices_button = ptg.Button("Get Serial Numbers", get_all_devices)
+        recover_button = ptg.Button("Reboot recovery", reboot_recovery)
+        status_text = ptg.Label()
+        status_container = ptg.Container(status_text)
+        window = ptg.Window(
+            "[wm-title]ADB Sideloader",
+            ptg.Label("[210 dim]By Kieran Wynne"),
+            *my_buttons,
+            get_devices_button,
+            recover_button,
+            exit_button,
+            status_container,
+        )
+        manager.add(window)
+        manager.run()
