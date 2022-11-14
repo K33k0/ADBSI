@@ -57,23 +57,20 @@ def run_user_sideload(adb, devices, file_name):
             bufsize=1
         )
     # Loop through the terminal output from the adb command
-    while True:
-        try:
-            nextline = status.stdout.readline()
-        except Exception:
-            print("Failed at readline")
-            raise
-        # if line of output is empty or adb is running then kill it
-        if nextline == "" and status.poll() is not None:
-            exitcode = status.returncode
-            if exitcode == 0:
-                return True
-        # parse out the number numbers from within the adb output. Turning it into a value out of 100
-        if "(" in nextline:
-            current_status = float(
-                nextline[nextline.find("(") + 1: nextline.find(")")][1:-1]
-            )
-            yield current_status
+    return status
+
+def read_subprocess_output(proc):
+    output = proc.stdout.readline()
+    if output == "" and proc.poll() is not None:
+        exitcode = proc.returncode
+        if exitcode == 0:
+            return True
+    if "(" in output:
+        current_status = float(
+            output[output.find("(") + 1: output.find(")")][1:-1]
+        )
+        return current_status
+
 
 def kill_app(*args):
     sys.exit()
