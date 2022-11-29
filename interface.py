@@ -32,14 +32,18 @@ class App(tk.Tk):
 
         self.devices = tk.Variable(value=['an','issue','occurred'])
         self.device_list_box = tk.Listbox(self, listvariable=self.devices, activestyle='none', state=tk.DISABLED)
-        self._set_grid(self.device_list_box, 0,1,3,5,5,5)
+        self._set_grid(self.device_list_box, row=0,column=1,columnspan=3,rowspan=5,pad_y=5,pad_x=5)
+
+        self.device_count_value = tk.StringVar(value='0 connected devices')
+        self.device_count_label = tk.Label(self, textvariable=self.device_count_value, justify=tk.CENTER)
+        self._set_grid(self.device_count_label, row=self.grid_size()[0]+1, column=1, columnspan=self.grid_size()[0])
 
         self.status_bar = ttk.Progressbar(self, orient='horizontal', length=200, mode='determinate')
-        self._set_grid(self.status_bar, row=self.grid_size()[0]+1, column=0, columnspan=self.grid_size()[0], rowspan=1)
+        self._set_grid(self.status_bar, row=self.grid_size()[0]+2, column=0, columnspan=self.grid_size()[0], rowspan=1)
 
         self.status_box_value = tk.StringVar(value='')
         self.status_label = ttk.Label(self, textvariable=self.status_box_value, justify=tk.CENTER, wraplength=200)
-        self._set_grid(self.status_label, row=self.grid_size()[0]+2, column=0, columnspan=self.grid_size()[0], rowspan=1)
+        self._set_grid(self.status_label, row=self.grid_size()[0]+3, column=0, columnspan=self.grid_size()[0], rowspan=1)
 
     def adb_pass_through(self,button_name):
         devices = list(self.devices.get())
@@ -65,6 +69,7 @@ class App(tk.Tk):
     def list_devices(self):
         latest_devices = device_list(config["adbLocation"])
         self.devices.set(value=tuple(latest_devices))
+        self.device_count_value.set(f'{str(len(latest_devices))} connected devices')
         self.after(500, self.list_devices)
 
     def reboot_recovery(self):
